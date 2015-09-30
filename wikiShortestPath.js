@@ -34,7 +34,7 @@ function shortestPath(start, goal) {
 	var scrapedUrls = [];
 	var linksFound = 0;
 
-	scrapePages([new URLStack(wikiURL(start))], filter, 6, function() {
+	scrapePages(new URLStack(wikiURL(start)), filter, 6, function() {
 		console.log();
 		console.log('Scraped ' + scrapedUrls.length + ' sites');
 		console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));

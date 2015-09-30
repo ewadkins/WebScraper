@@ -19,13 +19,12 @@ function scrape(urls, options, scrapeFunction, callback) {
 				for (var n = 0; n < numRequests; n++) {
 					requestCounter++;
 					i++;
-					scrape(urls[i - 1], options, function(url, body) {
-						scrapeFunction(url, body);
+					scrape(urls[i - 1], options, scrapeFunction, function() {
 						requestCounter--;
 						if (!requestCounter) {
 							next();
 						}
-					}, callback);	
+					});	
 				}
 			}
 			else {
@@ -63,9 +62,15 @@ function scrape(urls, options, scrapeFunction, callback) {
 		request(requestOptions, function (error, response, body){
 			if (error) {
 				scrapeFunction(urls, null);
+				if (callback) {
+					callback();
+				}
 			}
 			else {
 				scrapeFunction(urls, body);
+				if (callback) {
+					callback();
+				}
 			}
 		});
 	}
