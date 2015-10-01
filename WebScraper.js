@@ -8,71 +8,78 @@ module.exports = {
 var request = require('request');
 
 function scrape(urls, options, scrapeFunction, callback) {
-	if (Array.isArray(urls)) {
-		var requestGroup = 30;
-		var i = 0;
-		next();
-		function next() {
-			if (i < urls.length) {
-				var requestCounter = 0;
-				var numRequests = Math.min(requestGroup, urls.length - i);
-				for (var n = 0; n < numRequests; n++) {
-					requestCounter++;
-					i++;
-					scrape(urls[i - 1], options, scrapeFunction, function() {
-						requestCounter--;
-						if (!requestCounter) {
-							next();
-						}
-					});	
-				}
-			}
-			else {
-				if (callback) {
-					callback();
-				}
-			}
+	if (typeof options === 'function') {
+		if (typeof scrapeFunction === 'function') {
+			callback = scrapeFunction;
 		}
+		scrapeFunction = options;
 	}
-	else {
-		var url = urls;
-		if (url.isURLObject) {
-			url = url.url;
-		}
-		else if (url.isURLStack) {
-			url = url.current.url;
-		}
-		var requestOptions = {
-				method: 'GET',
-				url: url
-		};
-		if (options instanceof Object && !Array.isArray(options)) {
-			for (var key in options) {
-				if (options.hasOwnProperty(key)) {
-					requestOptions[key] = options[key];
+	scraperHelper(urls, options, callback);
+	function scraperHelper(urls, options, callback) {
+		if (Array.isArray(urls)) {
+			var finished = false;
+			var requestGroup = 30;
+			var i = 0;
+			next();
+			function next() {
+				if (i < urls.length) {
+					var requestCounter = 0;
+					var numRequests = Math.min(requestGroup, urls.length - i);
+					for (var n = 0; n < numRequests; n++) {
+						requestCounter++;
+						i++;
+						scraperHelper(urls[i - 1], options, function(cont) {
+							requestCounter--;
+							if (!finished && !cont) {
+								finished = true;
+								scrapeFunction = function() {}; // Prevents previously scheduled requests from being processed
+								callback();
+							}
+							if (!requestCounter && !finished) {
+								next();
+							}
+						});	
+					}
+				}
+				else {
+					if (callback) {
+						callback();
+					}
 				}
 			}
 		}
-		if (typeof options === 'function') {
-			if (typeof scrapeFunction === 'function') {
-				callback = scrapeFunction;
+		else {
+			var url = urls;
+			if (url.url) {
+				url = url.url;
 			}
-			scrapeFunction = options;
+			else if (url.current) {
+				url = url.current.url;
+			}
+			var requestOptions = {
+					method: 'GET',
+					url: url
+			};
+			if (options instanceof Object && !Array.isArray(options)) {
+				for (var key in options) {
+					if (options.hasOwnProperty(key)) {
+						requestOptions[key] = options[key];
+					}
+				}
+			}
+			request(requestOptions, function (error, response, body){
+				scrapeFunction(urls, (error ? null : body), function(next) {
+					if (callback) {
+						if (next === undefined || next) {
+							callback(true);
+						}
+						else {
+							callback(false);
+						}
+					}
+				});
+			});
 		}
-		request(requestOptions, function (error, response, body){
-			if (error) {
-				scrapeFunction(urls, null);
-				if (callback) {
-					callback();
-				}
-			}
-			else {
-				scrapeFunction(urls, body);
-				if (callback) {
-					callback();
-				}
-			}
-		});
 	}
 }
 
@@ -114,7 +121,6 @@ function URLObject(url, href) {
 			this[key] = info[key];
 		}
 	}
-	this.isURLObject = true;
 }
 
 function URLStack(url, parentStack) {
@@ -130,7 +136,6 @@ function URLStack(url, parentStack) {
 	}
 	this.stack.push(url);
 	this.current = url;
-	this.isURLStack = true;
 }
 
 function analyzeUrl(parentUrl, url) {

@@ -1,4 +1,8 @@
 
+module.exports = {
+		shortestPath: shortestPath
+};
+
 var cheerio = require('cheerio');
 var request = require('request');
 var fs = require('fs');
@@ -10,13 +14,13 @@ var algorithms = require('./algorithms');
 
 //shortestPath('Hentai', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Education', 'Massachusetts Institute of Technology'); // 2 clicks
-//shortestPath('Fire', 'Toothpaste'); // 2 clicks
+shortestPath('Fire', 'Toothpaste'); // 2 clicks
 //shortestPath('Toothpaste', 'Coefficient'); // 2 clicks
 //shortestPath('Atomic Bomb', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Bubble', 'Marilyn Monroe'); // 2 clicks
 //shortestPath('Allegory', 'Bill Clinton'); // 3 clicks
 //shortestPath('Labour Party (UK)', 'Productivity') // 2 clicks
-shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
+//shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
 //shortestPath('P versus NP problem', 'Adolf Hitler'); // 2 clicks
 //shortestPath('The Last Airbender', 'Somalia'); // 3 clicks
 //shortestPath('Dylan', 'Bacon'); // 3 clicks
@@ -34,29 +38,69 @@ function shortestPath(start, goal) {
 	var scrapedUrls = [];
 	var linksFound = 0;
 
-	scrapePages(new URLStack(wikiURL(start)), filter, 6, function() {
-		console.log();
-		console.log('Scraped ' + scrapedUrls.length + ' sites');
-		console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
-		console.log();
+	scrapePages(new URLStack(wikiURL(start)), filter, 6, function(result) {
+		if (result.success) {
+			console.log();
+	    	console.log(result.stack);
+	    	console.log();
+	    	var startStr = decodeURI(result.stack[0].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+	    	var indent = startStr.length;
+	    	for (var p = 1; p < result.stack.length; p++) {
+	    		var str = decodeURI(result.stack[p].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+	    		if (p === 1) {
+	    			console.log(startStr + ' ==> ' + str);
+	    		}
+	    		else {
+	    			var temp = '';
+	    			for (var n = 0; n < indent + (p - 1)*2; n++) {
+	    				temp += ' ';
+	    			}
+	    			console.log(temp + ' ==> ' + str);
+	    		}
+	    	}
+	    	console.log();
+	    	console.log('Found ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim() + ' in ' + (result.stack.length - 1) + ' clicks'));
+	    	console.log();
+		}
+		else {
+			console.log();
+			console.log('Scraped ' + scrapedUrls.length + ' sites');
+			console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
+			console.log();
+		}
 	});
 
 	function scrapePages(urlStacks, filter, depth, callback) {
 		if (depth > 0) {
 			var children = [];
-			WebScraper.scrape(urlStacks, { timeout: 2000 }, function(urlStack, body) {
+			var result;
+			WebScraper.scrape(urlStacks, { timeout: 3000 }, function(urlStack, body, next) {
+				
 				analyzePage(urlStack, body, function(c) {
-					for (var j = 0; j < c.length; j++) {
-						children.push(c[j]);
+					if (c.success) {
+			    		result = c;
+						next(false); // Stops the scraping process
+					}
+					else {
+						for (var j = 0; j < c.length; j++) {
+							children.push(c[j]);
+						}
+						next(); // Continues on with scraping
 					}
 				});
+				
 			}, function() {
-				scrapePages(children, filter, depth - 1, callback);
+				if (!result) {
+					scrapePages(children, filter, depth - 1, callback);	
+				}
+				else {
+					callback(result);
+				}
 			});		
 		}
 		else {
 			if (callback) {
-				callback();
+				callback({ success: false });
 			}
 		}
 	}
@@ -82,32 +126,10 @@ function shortestPath(start, goal) {
 			    		var newStack = new URLStack(urlObject, urlStack);
 			    		var title = urlObject.pathname.replace(/^\/wiki\//, '').replace(/[^\w\s]|_/g, ' ').trim();
 			    		if (!filter || filter(newStack.current.url)) {
-					    	children.push(newStack);	
+					    	children.push(newStack);
 			    		}
-			    		
 					    if (title === goal.replace(/[^\w\s]|_/g, ' ').replace(/\s+/g, ' ').trim()) {
-					    	console.log();
-					    	console.log({ stack: newStack.stack } );
-					    	console.log();
-					    	var startStr = decodeURI(newStack.stack[0].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
-					    	var indent = startStr.length;
-					    	for (var p = 1; p < newStack.stack.length; p++) {
-					    		var str = decodeURI(newStack.stack[p].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
-					    		if (p === 1) {
-					    			console.log(startStr + ' ==> ' + str);
-					    		}
-					    		else {
-					    			var temp = '';
-					    			for (var n = 0; n < indent + (p - 1)*2; n++) {
-					    				temp += ' ';
-					    			}
-					    			console.log(temp + ' ==> ' + str);
-					    		}
-					    	}
-					    	console.log();
-					    	console.log('Found ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim() + ' in ' + (newStack.stack.length - 1) + ' clicks'));
-					    	console.log();
-					    	process.exit();
+					    	callback({ success: true, stack: newStack.stack });
 					    }
 			    	}
 			    });
@@ -115,9 +137,7 @@ function shortestPath(start, goal) {
 			}
 		}
 		else {
-			setTimeout(function() {
-				callback([]);
-			}, 0);
+			callback([]);
 		}
 	}
 }
