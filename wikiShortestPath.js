@@ -32,12 +32,21 @@ shortestPath('Fire', 'Toothpaste'); // 2 clicks
 //shortestPath('Orangutang', 'Amorphism'); // Unknown
 //shortestPath('Poland Spring', 'Lint (material)') // Unknown
 
+//shortestPath('Commando', 'Tornado'); // 3 clicks
+//shortestPath('Hooker', 'Iced tea'); // Unknown
+//shortestPath('Diner', 'Iced tea'); // 3 clicks
+//shortestPath('Northern United States', 'Sweet tea'); // 3 clicks
+//shortestPath('United States', 'Deez Nuts (politician)');
+
+//shortestPath('Racial Diversity', 'Air force');
+
 
 
 function shortestPath(start, goal) {
 	var scrapedUrls = [];
 	var linksFound = 0;
 
+	var startTime = new Date();
 	scrapePages(new URLStack(wikiURL(start)), filter, 6, function(result) {
 		if (result.success) {
 			console.log();
@@ -68,22 +77,33 @@ function shortestPath(start, goal) {
 			console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
 			console.log();
 		}
+		var elapsed = new Date().getTime() - startTime.getTime();
+		console.log(elapsed / 1000 + ' seconds elapsed');
 	});
 
 	function scrapePages(urlStacks, filter, depth, callback) {
 		if (depth > 0) {
 			var children = [];
+			var childrenUrls = [];
 			var result;
+			var count = 0;
 			WebScraper.scrape(urlStacks, { timeout: 3000 }, function(urlStack, body, next) {
-				
+				count++;
 				analyzePage(urlStack, body, function(c) {
 					if (c.success) {
 			    		result = c;
 						next(false); // Stops the scraping process
 					}
 					else {
+						if (body) {
+							console.log(scrapedUrls.length + '. [L: ' + linksFound + ', D: ' + (urlStack.stack.length - 1) + ' (' + count + '/' + (Array.isArray(urlStacks) ? urlStacks.length : 1) + ')] ' + decodeURI(urlStack.current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')));
+						}
 						for (var j = 0; j < c.length; j++) {
-							children.push(c[j]);
+							if (algorithms.binarySearch(childrenUrls, c[j].current.origin + c[j].current.pathname) === null) {
+								childrenUrls = algorithms.binaryInsert(childrenUrls, c[j].current.origin + c[j].current.pathname);
+								children.push(c[j]);
+								childrenUrls.push(c[j].current.origin + c[j].current.pathname);
+							}
 						}
 						next(); // Continues on with scraping
 					}
@@ -118,7 +138,6 @@ function shortestPath(start, goal) {
 			    var children = [];
 			    var anchors = $('div#bodyContent a');
 			    linksFound += anchors.length;
-				console.log(scrapedUrls.length + '. [Links: ' + linksFound + ', Depth: ' + (urlStack.stack.length - 1) + '] ' + decodeURI(urlStack.current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')));
 			    anchors.each(function() {
 			    	var href = $(this).attr('href');
 			    	if (href) {

@@ -8,6 +8,9 @@ module.exports = {
 var request = require('request');
 
 function scrape(urls, options, scrapeFunction, callback) {
+	var requestGroup = 10;
+	var requestAttempts = 3;
+	
 	if (typeof options === 'function') {
 		if (typeof scrapeFunction === 'function') {
 			callback = scrapeFunction;
@@ -18,16 +21,16 @@ function scrape(urls, options, scrapeFunction, callback) {
 	function scraperHelper(urls, options, callback) {
 		if (Array.isArray(urls)) {
 			var finished = false;
-			var requestGroup = 30;
 			var i = 0;
+			var requestCounter = 0;
 			next();
 			function next() {
 				if (i < urls.length) {
-					var requestCounter = 0;
 					var numRequests = Math.min(requestGroup, urls.length - i);
-					for (var n = 0; n < numRequests; n++) {
+					while (i < urls.length && requestCounter < requestGroup) {
 						requestCounter++;
 						i++;
+						//console.log('Pending request count: ' + requestCounter);
 						scraperHelper(urls[i - 1], options, function(cont) {
 							requestCounter--;
 							if (!finished && !cont) {
@@ -35,7 +38,7 @@ function scrape(urls, options, scrapeFunction, callback) {
 								scrapeFunction = function() {}; // Prevents previously scheduled requests from being processed
 								callback();
 							}
-							if (!requestCounter && !finished) {
+							if (!finished) {
 								next();
 							}
 						});	
@@ -67,18 +70,28 @@ function scrape(urls, options, scrapeFunction, callback) {
 					}
 				}
 			}
-			request(requestOptions, function (error, response, body){
-				scrapeFunction(urls, (error ? null : body), function(next) {
-					if (callback) {
-						if (next === undefined || next) {
-							callback(true);
-						}
-						else {
-							callback(false);
-						}
+			sendRequest(requestOptions, 0);
+			function sendRequest(reqOptions, attempt) {
+				request(reqOptions, function (error, response, body){
+					if (error && attempt < requestAttempts) {
+						//console.log(error);
+						//console.log('Trying again..');
+						sendRequest(reqOptions, attempt + 1);
+					}
+					else {
+						scrapeFunction(urls, (error ? null : body), function(next) {
+							if (callback) {
+								if (next === undefined || next) {
+									callback(true);
+								}
+								else {
+									callback(false);
+								}
+							}
+						});
 					}
 				});
-			});
+			}
 		}
 	}
 }
