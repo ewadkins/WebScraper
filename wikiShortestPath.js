@@ -14,13 +14,13 @@ var algorithms = require('./algorithms');
 
 //shortestPath('Hentai', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Education', 'Massachusetts Institute of Technology'); // 2 clicks
-shortestPath('Fire', 'Toothpaste'); // 2 clicks
+//shortestPath('Fire', 'Toothpaste'); // 2 clicks
 //shortestPath('Toothpaste', 'Coefficient'); // 2 clicks
 //shortestPath('Atomic Bomb', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Bubble', 'Marilyn Monroe'); // 2 clicks
 //shortestPath('Allegory', 'Bill Clinton'); // 3 clicks
 //shortestPath('Labour Party (UK)', 'Productivity') // 2 clicks
-//shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
+shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
 //shortestPath('P versus NP problem', 'Adolf Hitler'); // 2 clicks
 //shortestPath('The Last Airbender', 'Somalia'); // 3 clicks
 //shortestPath('Dylan', 'Bacon'); // 3 clicks

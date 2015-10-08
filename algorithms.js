@@ -124,8 +124,8 @@ function isEqual (a, b) {
 		return a === b;
 	}
 	// Date
-	else if (a instanceof Date || b instanceof Date) {
-		return a === b;
+	else if (a instanceof Date && b instanceof Date) {
+		return a.getTime() === b.getTime();
 	}
 	// Array
 	else if (Array.isArray(a) && Array.isArray(b)) {
@@ -157,5 +157,5 @@ function isEqual (a, b) {
 		}
 		return true;
 	}
-	return false;
+	return a === b;
 }

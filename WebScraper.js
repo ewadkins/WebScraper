@@ -8,7 +8,7 @@ module.exports = {
 var request = require('request');
 
 function scrape(urls, options, scrapeFunction, callback) {
-	var requestGroup = 10;
+	var requestGroup = 100;
 	var requestAttempts = 3;
 	
 	if (typeof options === 'function') {
@@ -95,37 +95,6 @@ function scrape(urls, options, scrapeFunction, callback) {
 		}
 	}
 }
-
-/*function scrape(url, options, callback) {
-	if (url.isURLObject) {
-		url = url.url;
-	}
-	else if (url.isURLStack) {
-		url = url.current.url;
-	}
-	var requestOptions = {
-			method: 'GET',
-			url: url
-	};
-	if (options instanceof Object && !Array.isArray(options)) {
-		for (var key in options) {
-			if (options.hasOwnProperty(key)) {
-				requestOptions[key] = options[key];
-			}
-		}
-	}
-	else if (typeof options === 'function') {
-		callback = options;
-	}
-	request(requestOptions, function (error, response, body){
-		if (error) {
-			callback(null);
-		}
-		else {
-			callback(body);
-		}
-	});
-}*/
 
 function URLObject(url, href) {
 	var info = analyzeUrl(url, href);
