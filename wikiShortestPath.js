@@ -62,6 +62,7 @@ function shortestPath(start, goal) {
 
 function run(start, goal) {
 	var scrapedUrls = [];
+	var scrapedCount = 0;
 	var linksFound = 0;
 	var startTime = new Date();
 	var goalBody;
@@ -120,7 +121,7 @@ function run(start, goal) {
 					}
 					else {
 						if (body) {
-							console.log(scrapedUrls.length + '. [L: ' + linksFound + ', D: ' + (urlStack.stack.length - 1) + ' (' + count + '/' + (Array.isArray(urlStacks) ? urlStacks.length : 1) + ')] ' + decodeURI(urlStack.current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')));
+							console.log(scrapedCount + '. [L: ' + linksFound + ', D: ' + (urlStack.stack.length - 1) + ' (' + count + '/' + (Array.isArray(urlStacks) ? urlStacks.length : 1) + ')] ' + decodeURI(urlStack.current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')));
 						}
 						for (var j = 0; j < c.length; j++) {
 							if (algorithms.binarySearch(childrenUrls, c[j].current.origin + c[j].current.pathname) === null) {
@@ -173,8 +174,11 @@ function run(start, goal) {
 	}
 
 	function analyzePage(urlStack, body, callback) {
-		if (algorithms.binarySearch(scrapedUrls, urlStack.current.origin + urlStack.current.pathname) === null) {
-			scrapedUrls = algorithms.binaryInsert(scrapedUrls, urlStack.current.origin + urlStack.current.pathname);
+		//if (algorithms.binarySearch(scrapedUrls, urlStack.current.origin + urlStack.current.pathname) === null) {
+			//scrapedUrls = algorithms.binaryInsert(scrapedUrls, urlStack.current.origin + urlStack.current.pathname);
+		if (!scrapedUrls[urlStack.current.origin + urlStack.current.pathname]) {
+			scrapedUrls[urlStack.current.origin + urlStack.current.pathname] = 1;
+			scrapedCount++;
 			if (!body) {
 				callback([]);
 			}
