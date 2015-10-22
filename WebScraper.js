@@ -21,6 +21,36 @@ function scrape(urls, options, scrapeFunction, callback) {
 	function scraperHelper(urls, options, callback) {
 		if (Array.isArray(urls)) {
 			var finished = false;
+			var requestGroup = 100;
+			var i = 0;
+			next();
+			function next() {
+				if (i < urls.length) {
+					var requestCounter = 0;
+					var numRequests = Math.min(requestGroup, urls.length - i);
+					for (var n = 0; n < numRequests; n++) {
+						requestCounter++;
+						i++;
+						scraperHelper(urls[i - 1], options, function(cont) {
+							requestCounter--;
+							if (!finished && !cont) {
+								finished = true;
+								scrapeFunction = function() {}; // Prevents previously scheduled requests from being processed
+								callback();
+							}
+							if (!requestCounter && !finished) {
+								next();
+							}
+						});	
+					}
+				}
+				else {
+					if (callback) {
+						callback();
+					}
+				}
+			}
+			/*var finished = false;
 			var i = 0;
 			var requestCounter = 0;
 			next();
@@ -30,7 +60,6 @@ function scrape(urls, options, scrapeFunction, callback) {
 					while (i < urls.length && requestCounter < requestGroup) {
 						requestCounter++;
 						i++;
-						//console.log('Pending request count: ' + requestCounter);
 						scraperHelper(urls[i - 1], options, function(cont) {
 							requestCounter--;
 							if (!finished && !cont) {
@@ -49,7 +78,7 @@ function scrape(urls, options, scrapeFunction, callback) {
 						callback();
 					}
 				}
-			}
+			}*/
 		}
 		else {
 			var url = urls;

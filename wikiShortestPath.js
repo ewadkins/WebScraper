@@ -20,12 +20,12 @@ var algorithms = require('./algorithms');
 //shortestPath('Bubble', 'Marilyn Monroe'); // 2 clicks
 //shortestPath('Allegory', 'Bill Clinton'); // 3 clicks
 //shortestPath('Labour Party (UK)', 'Productivity') // 2 clicks
-shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
+//shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
 //shortestPath('P versus NP problem', 'Adolf Hitler'); // 2 clicks
 //shortestPath('The Last Airbender', 'Somalia'); // 3 clicks
 //shortestPath('Dylan', 'Bacon'); // 3 clicks
 //shortestPath('Aaron', 'Autism'); // 3 clicks
-//shortestPath('BDSM', 'Giraffe'); // 3 clicks
+shortestPath('BDSM', 'Giraffe'); // 3 clicks
 
 //shortestPath('Tomato', 'Neuschwanstein Castle'); // Unknown
 //shortestPath('Dylan', 'Fried Chicken'); // Unknown
@@ -38,47 +38,71 @@ shortestPath('Fallout (series)', 'Noam Chomsky'); // 2 clicks
 //shortestPath('Northern United States', 'Sweet tea'); // 3 clicks
 //shortestPath('United States', 'Deez Nuts (politician)');
 
+//shortestPath('United States', 'Russia');
+
 //shortestPath('Racial Diversity', 'Air force');
 
+//shortestPath('Chair', '1000 (number)');
 
+//shortestPath('Ron Rivest', 'Dictatorship of the proletariat'); // 3 clicks
+
+//shortestPath('Directive on the harmonisation of certain aspects of copyright and related rights in the information society', 'Serial Killer')
+
+//shortestPath('MIT', 'Caltech')
 
 function shortestPath(start, goal) {
+	getWikiTitle(start, function(startTitle) {
+		start = startTitle;
+		getWikiTitle(goal, function(goalTitle) {
+			goal = goalTitle;
+			run(start, goal);
+		});
+	});
+}
+
+function run(start, goal) {
 	var scrapedUrls = [];
 	var linksFound = 0;
-
 	var startTime = new Date();
-	scrapePages(new URLStack(wikiURL(start)), filter, 6, function(result) {
-		if (result.success) {
-			console.log();
-	    	console.log(result.stack);
-	    	console.log();
-	    	var startStr = decodeURI(result.stack[0].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
-	    	var indent = startStr.length;
-	    	for (var p = 1; p < result.stack.length; p++) {
-	    		var str = decodeURI(result.stack[p].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
-	    		if (p === 1) {
-	    			console.log(startStr + ' ==> ' + str);
-	    		}
-	    		else {
-	    			var temp = '';
-	    			for (var n = 0; n < indent + (p - 1)*2; n++) {
-	    				temp += ' ';
-	    			}
-	    			console.log(temp + ' ==> ' + str);
-	    		}
-	    	}
-	    	console.log();
-	    	console.log('Found ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim() + ' in ' + (result.stack.length - 1) + ' clicks'));
-	    	console.log();
-		}
-		else {
-			console.log();
-			console.log('Scraped ' + scrapedUrls.length + ' sites');
-			console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
-			console.log();
-		}
-		var elapsed = new Date().getTime() - startTime.getTime();
-		console.log(elapsed / 1000 + ' seconds elapsed');
+	var goalBody;
+	
+	WebScraper.scrape(wikiURL(goal), function(url, body) {
+		goalBody = body.toLowerCase();
+		
+		scrapePages(new URLStack(wikiURL(start)), filter, 6, function(result) {
+			if (result.success) {
+				console.log();
+		    	console.log(result.stack);
+		    	console.log();
+		    	var startStr = decodeURI(result.stack[0].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+		    	var indent = startStr.length;
+		    	for (var p = 1; p < result.stack.length; p++) {
+		    		var str = decodeURI(result.stack[p].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+		    		if (p === 1) {
+		    			console.log(startStr + ' ==> ' + str);
+		    		}
+		    		else {
+		    			var temp = '';
+		    			for (var n = 0; n < indent + (p - 1)*2; n++) {
+		    				temp += ' ';
+		    			}
+		    			console.log(temp + ' ==> ' + str);
+		    		}
+		    	}
+		    	console.log();
+		    	console.log('Found ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim() + ' in ' + (result.stack.length - 1) + ' clicks'));
+		    	console.log();
+			}
+			else {
+				console.log();
+				console.log('Scraped ' + scrapedUrls.length + ' sites');
+				console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
+				console.log();
+			}
+			var elapsed = new Date().getTime() - startTime.getTime();
+			console.log(elapsed / 1000 + ' seconds elapsed');
+		});
+		
 	});
 
 	function scrapePages(urlStacks, filter, depth, callback) {
@@ -111,6 +135,29 @@ function shortestPath(start, goal) {
 				
 			}, function() {
 				if (!result) {
+					console.log();
+					console.log('Increasing depth');
+					console.log('Running heuristic on ' + children.length + ' children...');
+				    var matchMap = {};
+				    for (var i = 0; i < children.length; i++) {
+				    	var word = decodeURI(children[i].current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')).toLowerCase();
+				    	var occurrenceCount = countOccurrences(goalBody, word.toLowerCase());
+				    	matchMap[word] = { stack: children[i], count: occurrenceCount };
+				    }
+				    var sorted = [];
+				    for (var word in matchMap) {
+				    	if (matchMap.hasOwnProperty(word)) {
+				    		sorted.push({ stack: matchMap[word].stack, word: word, count: matchMap[word].count });
+				    	}
+				    }
+				    sorted.sort(function(a, b) {
+				    	return matchMap[b.word].count - matchMap[a.word].count;
+				    });
+				    children = [];
+				    for (var i = 0 ; i < sorted.length; i++) {
+				    	children.push(sorted[i].stack);
+				    }
+				    
 					scrapePages(children, filter, depth - 1, callback);	
 				}
 				else {
@@ -159,6 +206,17 @@ function shortestPath(start, goal) {
 			callback([]);
 		}
 	}
+}
+
+function countOccurrences(body, word) {
+	return body.split(word).length - 1;
+}
+
+function getWikiTitle(str, callback) {
+	WebScraper.scrape(wikiURL(str), function(url, body) {
+		var $ = cheerio.load(body);
+		callback($('#firstHeading').text());
+	});
 }
 
 function wikiURL(str) {
