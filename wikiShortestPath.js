@@ -25,30 +25,28 @@ var algorithms = require('./algorithms');
 //shortestPath('The Last Airbender', 'Somalia'); // 3 clicks
 //shortestPath('Dylan', 'Bacon'); // 3 clicks
 //shortestPath('Aaron', 'Autism'); // 3 clicks
-shortestPath('BDSM', 'Giraffe'); // 3 clicks
+//shortestPath('BDSM', 'Giraffe'); // 3 clicks
 
-//shortestPath('Tomato', 'Neuschwanstein Castle'); // Unknown
-//shortestPath('Dylan', 'Fried Chicken'); // Unknown
+//shortestPath('Tomato', 'Neuschwanstein Castle'); // 3 clicks
+//shortestPath('Tomato', 'NATO'); // 2 clicks
+//shortestPath('NATO', 'Tomato'); // 2 clicks
+//shortestPath('Dylan', 'Fried Chicken'); // 4 clicks
 //shortestPath('Orangutang', 'Amorphism'); // Unknown
-//shortestPath('Poland Spring', 'Lint (material)') // Unknown
+//shortestPath('Poland Spring', 'Lint') // Unknown
 
 //shortestPath('Commando', 'Tornado'); // 3 clicks
-//shortestPath('Hooker', 'Iced tea'); // Unknown
+//shortestPath('Hooker', 'Iced tea'); // 4 clicks
 //shortestPath('Diner', 'Iced tea'); // 3 clicks
 //shortestPath('Northern United States', 'Sweet tea'); // 3 clicks
-//shortestPath('United States', 'Deez Nuts (politician)');
+//shortestPath('United States', 'Deez Nuts (politician)'); // Unknown
 
 //shortestPath('United States', 'Russia');
-
 //shortestPath('Racial Diversity', 'Air force');
-
 //shortestPath('Chair', '1000 (number)');
-
 //shortestPath('Ron Rivest', 'Dictatorship of the proletariat'); // 3 clicks
-
-//shortestPath('Directive on the harmonisation of certain aspects of copyright and related rights in the information society', 'Serial Killer')
-
+shortestPath('Copyright Directive', 'Serial Killer')
 //shortestPath('MIT', 'Caltech')
+//shortestPath('NATO', 'Banana');
 
 function shortestPath(start, goal) {
 	getWikiTitle(start, function(startTitle) {
@@ -139,26 +137,23 @@ function run(start, goal) {
 					console.log();
 					console.log('Increasing depth');
 					console.log('Running heuristic on ' + children.length + ' children...');
-				    var matchMap = {};
+				    var countMap = {};
+				    var sorted = [];
 				    for (var i = 0; i < children.length; i++) {
 				    	var word = decodeURI(children[i].current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')).toLowerCase();
-				    	var occurrenceCount = countOccurrences(goalBody, word.toLowerCase());
-				    	matchMap[word] = { stack: children[i], count: occurrenceCount };
-				    }
-				    var sorted = [];
-				    for (var word in matchMap) {
-				    	if (matchMap.hasOwnProperty(word)) {
-				    		sorted.push({ stack: matchMap[word].stack, word: word, count: matchMap[word].count });
+				    	if (countMap[word] === undefined) {
+					    	var occurrenceCount = countOccurrences(goalBody, word.toLowerCase());
+					    	countMap[word] = occurrenceCount;
+					    	sorted.push({ stack: children[i], word: word });
 				    	}
 				    }
 				    sorted.sort(function(a, b) {
-				    	return matchMap[b.word].count - matchMap[a.word].count;
+				    	return countMap[b.word] - countMap[a.word];
 				    });
 				    children = [];
 				    for (var i = 0 ; i < sorted.length; i++) {
 				    	children.push(sorted[i].stack);
 				    }
-				    
 					scrapePages(children, filter, depth - 1, callback);	
 				}
 				else {
