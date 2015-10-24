@@ -10,11 +10,10 @@ var fs = require('fs');
 var WebScraper = require('./WebScraper');
 var URLObject = WebScraper.URLObject;
 var URLStack = WebScraper.URLStack;
-var algorithms = require('./algorithms');
 
+//shortestPath('Fire', 'Toothpaste'); // 2 clicks
 //shortestPath('Hentai', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Education', 'Massachusetts Institute of Technology'); // 2 clicks
-//shortestPath('Fire', 'Toothpaste'); // 2 clicks
 //shortestPath('Toothpaste', 'Coefficient'); // 2 clicks
 //shortestPath('Atomic Bomb', 'Massachusetts Institute of Technology'); // 2 clicks
 //shortestPath('Bubble', 'Marilyn Monroe'); // 2 clicks
@@ -31,8 +30,10 @@ var algorithms = require('./algorithms');
 //shortestPath('Tomato', 'NATO'); // 2 clicks
 //shortestPath('NATO', 'Tomato'); // 2 clicks
 //shortestPath('Dylan', 'Fried Chicken'); // 4 clicks
+//shortestPath('Pencil', 'Hamburger') // 3 clicks
 //shortestPath('Orangutang', 'Amorphism'); // Unknown
-//shortestPath('Poland Spring', 'Lint') // Unknown
+
+//shortestPath('Poland Spring', 'Lint') // Never, 5+ clicks possible
 
 //shortestPath('Commando', 'Tornado'); // 3 clicks
 //shortestPath('Hooker', 'Iced tea'); // 4 clicks
@@ -40,26 +41,51 @@ var algorithms = require('./algorithms');
 //shortestPath('Northern United States', 'Sweet tea'); // 3 clicks
 //shortestPath('United States', 'Deez Nuts (politician)'); // Unknown
 
-//shortestPath('United States', 'Russia');
-//shortestPath('Racial Diversity', 'Air force');
-//shortestPath('Chair', '1000 (number)');
+//shortestPath('United States', 'MIT');
+//shortestPath('Chair', '1000 (number)'); // Unknown
 //shortestPath('Ron Rivest', 'Dictatorship of the proletariat'); // 3 clicks
-shortestPath('Copyright Directive', 'Serial Killer')
+//shortestPath('Shivani', 'Dictatorship of the proletariat'); // 3 clicks
+//shortestPath('Space', 'Dole Food Company'); // Unknown
+//shortestPath('Dictatorship of the proletariat', 'CIA');
+//shortestPath('Copyright Directive', 'Serial Killer') // 3 clicks
 //shortestPath('MIT', 'Caltech')
-//shortestPath('NATO', 'Banana');
+//shortestPath('Banana', 'NATO'); // 2 clicks
 
-function shortestPath(start, goal) {
+//shortestPath('Michael', 'Genius');
+
+//shortestPath('Pasteurellosis', 'Sarzeh Shamil') // 4 clicks
+
+//shortestPath('Solitary practitioner', 'List of books banned by governments'); // 3 clicks
+//shortestPath('Piperidylthiambutene', 'Cat'); // 2 clicks
+//shortestPath('Piperidylthiambutene', 'United Nations Security Council Resolution 2042'); // 4 clicks
+//shortestPath('Directional Infrared Counter Measures', 'Thioridazine'); // 3 clicks
+//shortestPath('1704 in architecture', '1971 in art'); // 3 clicks
+
+//shortestPath('Promiscuity', 'Chair'); // 3 clicks
+//shortestPath('Promiscuity', 'Keyboard'); // 
+
+//shortestPath('My Little Pony: Friendship Is Magic', 'Adolf Hitler'); // 2 clicks
+shortestPath('Postmodernism', 'Cat'); // 2 clicks
+
+//shortestPath('Ryan', 'Genius'); // 4 clicks
+//shortestPath('Ryan', 'Idiot'); // 4 clicks
+
+//shortestPath('', 'Idiot');
+
+
+
+
+function shortestPath(start, goal, callback) {
 	getWikiTitle(start, function(startTitle) {
 		start = startTitle;
 		getWikiTitle(goal, function(goalTitle) {
 			goal = goalTitle;
-			run(start, goal);
+			run(start, goal, callback);
 		});
 	});
 }
 
-function run(start, goal) {
-	var scrapedUrls = [];
+function run(start, goal, callback) {
 	var scrapedCount = 0;
 	var linksFound = 0;
 	var startTime = new Date();
@@ -68,15 +94,16 @@ function run(start, goal) {
 	WebScraper.scrape(wikiURL(goal), function(url, body) {
 		goalBody = body.toLowerCase();
 		
-		scrapePages(new URLStack(wikiURL(start)), filter, 6, function(result) {
+		scrapePages(new URLStackLight(wikiURL(start)), filter, 6, function(result) {	
+			var elapsed = new Date().getTime() - startTime.getTime();
 			if (result.success) {
 				console.log();
 		    	console.log(result.stack);
 		    	console.log();
-		    	var startStr = decodeURI(result.stack[0].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+		    	var startStr = result.stack[0].title;
 		    	var indent = startStr.length;
 		    	for (var p = 1; p < result.stack.length; p++) {
-		    		var str = decodeURI(result.stack[p].pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' '));
+		    		var str = result.stack[p].title;
 		    		if (p === 1) {
 		    			console.log(startStr + ' ==> ' + str);
 		    		}
@@ -89,17 +116,43 @@ function run(start, goal) {
 		    		}
 		    	}
 		    	console.log();
-		    	console.log('Found ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim() + ' in ' + (result.stack.length - 1) + ' clicks'));
+		    	console.log('Found ' + goal + ' in ' + (result.stack.length - 1) + ' clicks');
 		    	console.log();
 			}
 			else {
 				console.log();
-				console.log('Scraped ' + scrapedUrls.length + ' sites');
-				console.log('Failed to find ' + decodeURI(goal.replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ').trim()));
+				console.log('Scraped ' + scrapedCount + ' sites');
+				console.log('Found ' + linksFound + ' links');
+				console.log('Failed to find ' + goal);
 				console.log();
 			}
-			var elapsed = new Date().getTime() - startTime.getTime();
 			console.log(elapsed / 1000 + ' seconds elapsed');
+			
+			var finalResult;
+			if (result.success) {
+				finalResult = {
+						success: result.success,
+						elapsed: elapsed,
+						scrapedCount: scrapedCount,
+						linkCount: linksFound,
+						stack: result.stack
+				};
+			}
+			else {
+				finalResult = {
+						success: result.success,
+						elapsed: elapsed,
+						scrapedCount: scrapedCount,
+						linkCount: linksFound
+				};
+			}
+			
+			//console.log();
+			//console.log(finalResult);
+			
+			if (callback) {
+				callback(finalResult);
+			}
 		});
 		
 	});
@@ -107,7 +160,7 @@ function run(start, goal) {
 	function scrapePages(urlStacks, filter, depth, callback) {
 		if (depth > 0) {
 			var children = [];
-			var childrenUrls = [];
+			var found = {};
 			var result;
 			var count = 0;
 			WebScraper.scrape(urlStacks, { timeout: 3000 }, function(urlStack, body, next) {
@@ -118,42 +171,23 @@ function run(start, goal) {
 						next(false); // Stops the scraping process
 					}
 					else {
-						if (body) {
-							console.log(scrapedCount + '. [L: ' + linksFound + ', D: ' + (urlStack.stack.length - 1) + ' (' + count + '/' + (Array.isArray(urlStacks) ? urlStacks.length : 1) + ')] ' + decodeURI(urlStack.current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')));
-						}
-						for (var j = 0; j < c.length; j++) {
-							if (algorithms.binarySearch(childrenUrls, c[j].current.origin + c[j].current.pathname) === null) {
-								childrenUrls = algorithms.binaryInsert(childrenUrls, c[j].current.origin + c[j].current.pathname);
-								children.push(c[j]);
-								childrenUrls.push(c[j].current.origin + c[j].current.pathname);
+						if (c.length) {
+							for (var j = 0; j < c.length; j++) {
+								if (!found[c[j].current.title]) {
+									found[c[j].current.title] = 1;
+									children.push(c[j]);
+								}
 							}
+							console.log(scrapedCount + '. [L: ' + linksFound + ', C: ' + children.length + ', D: ' + (urlStack.stack.length - 1) + ' (' + count + '/' + (Array.isArray(urlStacks) ? urlStacks.length : 1) + ')] ' + urlStack.current.title);
 						}
 						next(); // Continues on with scraping
 					}
 				});
-				
 			}, function() {
 				if (!result) {
 					console.log();
 					console.log('Increasing depth');
-					console.log('Running heuristic on ' + children.length + ' children...');
-				    var countMap = {};
-				    var sorted = [];
-				    for (var i = 0; i < children.length; i++) {
-				    	var word = decodeURI(children[i].current.pathname.replace(/^\/wiki\//, '').slice(0, -1).replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ')).toLowerCase();
-				    	if (countMap[word] === undefined) {
-					    	var occurrenceCount = countOccurrences(goalBody, word.toLowerCase());
-					    	countMap[word] = occurrenceCount;
-					    	sorted.push({ stack: children[i], word: word });
-				    	}
-				    }
-				    sorted.sort(function(a, b) {
-				    	return countMap[b.word] - countMap[a.word];
-				    });
-				    children = [];
-				    for (var i = 0 ; i < sorted.length; i++) {
-				    	children.push(sorted[i].stack);
-				    }
+					children = runHeuristic(children, goalBody);
 					scrapePages(children, filter, depth - 1, callback);	
 				}
 				else {
@@ -169,42 +203,77 @@ function run(start, goal) {
 	}
 
 	function analyzePage(urlStack, body, callback) {
-		//if (algorithms.binarySearch(scrapedUrls, urlStack.current.origin + urlStack.current.pathname) === null) {
-			//scrapedUrls = algorithms.binaryInsert(scrapedUrls, urlStack.current.origin + urlStack.current.pathname);
-		if (!scrapedUrls[urlStack.current.origin + urlStack.current.pathname]) {
-			scrapedUrls[urlStack.current.origin + urlStack.current.pathname] = 1;
-			scrapedCount++;
-			if (!body) {
-				callback([]);
-			}
-			else {
-			    var $ = cheerio.load(body);
-			    //var title = $('.firstHeading').text();
-			    //console.log(title);
-			    var children = [];
-			    var anchors = $('div#bodyContent a');
-			    linksFound += anchors.length;
-			    anchors.each(function() {
-			    	var href = $(this).attr('href');
-			    	if (href) {
-			    		var urlObject = new URLObject(urlStack.current.url, href);
-			    		var newStack = new URLStack(urlObject, urlStack);
-			    		var title = urlObject.pathname.replace(/^\/wiki\//, '').replace(/[^\w\s]|_/g, ' ').trim();
-			    		if (!filter || filter(newStack.current.url)) {
-					    	children.push(newStack);
-			    		}
-					    if (title === goal.replace(/[^\w\s]|_/g, ' ').replace(/\s+/g, ' ').trim()) {
-					    	callback({ success: true, stack: newStack.stack });
-					    }
-			    	}
-			    });
-			    callback(children);
-			}
-		}
-		else {
+		scrapedCount++;
+		if (!body) {
 			callback([]);
 		}
+		else {
+		    var $ = cheerio.load(body);
+		    var children = [];
+		    var anchors = $('div#bodyContent a');
+		    linksFound += anchors.length;
+		    anchors.each(function() {
+		    	var href = $(this).attr('href');
+		    	if (href) {
+		    		var urlObject = new URLObjectLight(urlStack.current.url, href);
+		    		var newStack = new URLStackLight(urlObject, urlStack);
+		    		if (!filter || filter(newStack.current.url)) {
+				    	children.push(newStack);
+		    		}
+				    if (urlObject.title === goal) {
+				    	callback({ success: true, stack: newStack.stack });
+				    }
+		    	}
+		    });
+		    callback(children);
+		}
 	}
+}
+
+function runHeuristic(children, body) {
+	console.log('Running heuristic on ' + children.length + ' children...');
+    var countMap = {};
+    var sorted = [];
+    for (var i = 0; i < children.length; i++) {
+    	var word = children[i].current.title.toLowerCase();
+    	if (countMap[word] === undefined) {
+	    	var occurrenceCount = countOccurrences(body, word.toLowerCase());
+	    	countMap[word] = occurrenceCount;
+	    	sorted.push({ stack: children[i], word: word });
+    	}
+    }
+    sorted.sort(function(a, b) {
+    	return countMap[b.word] - countMap[a.word];
+    });
+    children = [];
+    for (var i = 0 ; i < sorted.length; i++) {
+    	children.push(sorted[i].stack);
+    	//console.log(countMap[sorted[i].word] + '\t' + sorted[i].word);
+    }
+    return children;
+}
+
+function URLObjectLight(url, href) {
+	var urlObject = new URLObject(url, href);
+	return {
+		url: urlObject.url,
+		title: deWikify(urlObject.pathname)
+	};
+}
+
+function URLStackLight(url, parentStack) {
+	if (typeof url === 'string') {
+		url = new URLObjectLight(url);
+	}
+	this.stack = [];
+	if (parentStack) {
+		for (var i = 0; i < parentStack.stack.length; i++) {
+			this.stack.push(parentStack.stack[i]);
+		}	
+		this.parent = parentStack.current;
+	}
+	this.stack.push(url);
+	this.current = url;
 }
 
 function countOccurrences(body, word) {
@@ -218,13 +287,39 @@ function getWikiTitle(str, callback) {
 	});
 }
 
+function deWikify(str) {
+	if (str.length && str[str.length - 1] === '/') {
+		str = str.slice(0, -1);
+	}
+	return unescape(str).replace(/^\/wiki\//, '').replace(/[^\w\s![()]]|_/g, ' ').replace(/\s+/g, ' ');
+}
+
+function deWikifyURL(url) {
+	return deWikify(pathname(url));
+}
+
 function wikiURL(str) {
 	return 'https://en.wikipedia.org/wiki/' + (str ? str : '');
 }
 
+function pathname(url) {
+	var pathname = url.slice(url.slice(url.indexOf('//') + 2).indexOf('/') + url.indexOf('//') + 2);
+	pathname = pathname.indexOf('#') !== -1 ? pathname.substr(0, pathname.indexOf('#')) : pathname;
+	pathname = pathname.indexOf('?') !== -1 ? pathname.substr(0, pathname.indexOf('?')) : pathname;
+	pathname = pathname.match('^.*/$') ? pathname : pathname + '/';
+	return pathname;
+}
+
 function filter(url) {
-	var extensions = ['asp','aspx','axd','asx','asmx','ashx','css','cfm','yaws','swf','html','htm','xhtml','jhtml','jsp','jspx','wss','do','action','js','pl','php','php4','php3','phtml','py','rb','rhtml','xml','rss','svg','cgi','dll'];
-	var end = url.slice(url.lastIndexOf('/'));
+	var path = pathname(url);
+	if (path.match(':')) {
+		return false;
+	}
+	var end = path.slice(0, -1)
+	end = end.slice(end.lastIndexOf('/') + 1);
+	//var extensions = ['asp','aspx','axd','asx','asmx','ashx','css','cfm','yaws','swf','html','htm','xhtml','jhtml','jsp','jspx','wss','do','action','js','pl','php','php4','php3','phtml','py','rb','rhtml','xml','rss','svg','cgi','dll'];
+	var extensions = [];
+	//var end = url.slice(url.lastIndexOf('/'));
 	var match = false;
 	for (var e = 0; e < extensions.length; e++) {
 		if (end.match('\.' + extensions[e] + '$')) {
